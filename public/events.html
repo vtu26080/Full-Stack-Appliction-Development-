@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>All Events - Vel Tech Campus Portal</title>
+<link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<nav class="navbar">
+  <a href="/" class="navbar-brand">
+    <div class="navbar-logo">VT</div>
+    <div class="brand-text">
+      <div class="brand-name">Vel Tech University</div>
+      <div class="brand-sub">Campus Event Portal</div>
+    </div>
+  </a>
+  <div class="navbar-links">
+    <a href="/" class="nav-link">Home</a>
+    <a href="/events" class="nav-link active">Events</a>
+    <a href="#" id="dashLink" class="nav-link" style="display:none">My Dashboard</a>
+    <a href="#" id="logoutBtn" class="nav-link" style="display:none">Logout</a>
+    <a href="/login" class="nav-link" id="loginLink">Login</a>
+    <a href="/register" class="nav-link btn-nav" id="registerLink">Register</a>
+  </div>
+</nav>
+
+<section class="hero" style="padding:50px 2rem">
+  <div class="hero-content">
+    <h1 style="font-size:2.2rem">🎉 All Campus Events</h1>
+    <p>Explore, register, and participate in exciting events at Vel Tech University</p>
+  </div>
+</section>
+
+<section class="section">
+  <div class="container">
+    <div class="category-filter" id="catFilter">
+      <button class="filter-btn active" onclick="filterEvents('All',this)">All</button>
+      <button class="filter-btn" onclick="filterEvents('Technology',this)">💻 Technology</button>
+      <button class="filter-btn" onclick="filterEvents('Hackathon',this)">⚡ Hackathon</button>
+      <button class="filter-btn" onclick="filterEvents('Cultural',this)">🎭 Cultural</button>
+      <button class="filter-btn" onclick="filterEvents('Academic',this)">📚 Academic</button>
+      <button class="filter-btn" onclick="filterEvents('Sports',this)">⚽ Sports</button>
+      <button class="filter-btn" onclick="filterEvents('Workshop',this)">🔬 Workshop</button>
+      <button class="filter-btn" onclick="filterEvents('Entrepreneurship',this)">💡 Entrepreneurship</button>
+      <button class="filter-btn" onclick="filterEvents('Science',this)">🔭 Science</button>
+    </div>
+    <div class="events-grid" id="eventsGrid">
+      <div class="loading-center" style="grid-column:1/-1"><div class="spinner"></div></div>
+    </div>
+  </div>
+</section>
+
+<footer class="footer"><p>© 2026 <strong>Vel Tech University</strong> - Campus Event Portal</p></footer>
+<div class="toast" id="toast"></div>
+
+<script>
+let allEvents = [];
+let userLoggedIn = false;
+
+async function init() {
+  const sess = await fetch('/api/session').then(r=>r.json());
+  userLoggedIn = sess.loggedIn;
+  if (sess.loggedIn) {
+    document.getElementById('loginLink').style.display = 'none';
+    document.getElementById('registerLink').style.display = 'none';
+    document.getElementById('dashLink').style.display = 'block';
+    document.getElementById('dashLink').href = '/dashboard';
+    document.getElementById('logoutBtn').style.display = 'block';
+  }
+  document.getElementById('logoutBtn').addEventListener('click', async () => {
+    await fetch('/api/user/logout', {method:'POST'});
+    location.href='/';
+  });
+  await loadEvents();
+}
+
+async function loadEvents(category='All') {
+  const url = category==='All' ? '/api/events' : `/api/events?category=${encodeURIComponent(category)}`;
+  const data = await fetch(url).then(r=>r.json());
+  allEvents = data.events || [];
+  renderEvents(allEvents);
+}
+
+function renderEvents(events) {
+  const grid = document.getElementById('eventsGrid');
+  if (!events.length) {
+    grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:60px"><div style="font-size:3rem">😕</div><h3>No events found</h3><p style="color:#999">Try a different category</p></div>';
+    return;
+  }
+  grid.innerHTML = events.map(e => {
+    const date = new Date(e.event_date).toLocaleDateString('en-IN',{weekday:'short',day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'});
+    const seats = e.max_seats - e.registered_count;
+    const pct = (e.registered_count/e.max_seats)*100;
+    const img = e.image_url ? `<img src="${e.image_url}" class="event-img" alt="${e.title}" onerror="this.outerHTML='<div class=\\'event-img-placeholder\\'>🎓</div>'">` : `<div class="event-img-placeholder">🎓</div>`;
+    return `<div class="event-card">
+      ${img}
+      <div class="event-body">
+        <span class="event-category">${e.category}</span>
+        <div class="event-title">${e.title}</div>
+        <div class="event-desc">${e.description?.substring(0,110)}...</div>
+        <div class="event-meta">
+          <div class="event-meta-item"><span>📅</span><span>${date}</span></div>
+          <div class="event-meta-item"><span>📍</span><span>${e.location}</span></div>
+          <div class="event-meta-item"><span>👥</span><span>${e.registered_count} / ${e.max_seats} registered</span></div>
+        </div>
+        <div class="progress-bar-wrap"><div class="progress-bar-fill" style="width:${Math.min(pct,100)}%"></div></div>
+        <div class="event-footer">
+          <div class="seats-badge ${seats<=0?'full':''}">${seats>0?seats+' seats left':'Fully Booked'}</div>
+          <a href="/event/${e.id}" class="btn-register">View Details</a>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function filterEvents(cat, btn) {
+  document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  loadEvents(cat);
+}
+
+function showToast(msg, type='') {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.className = 'toast show ' + type;
+  setTimeout(()=>t.className='toast', 3000);
+}
+
+init();
+</script>
+</body>
+</html>

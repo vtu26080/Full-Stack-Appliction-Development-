@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>My Dashboard - Vel Tech Campus Portal</title>
+<link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<nav class="navbar">
+  <a href="/" class="navbar-brand">
+    <div class="navbar-logo">VT</div>
+    <div class="brand-text"><div class="brand-name">Vel Tech University</div><div class="brand-sub">Campus Event Portal</div></div>
+  </a>
+  <div class="navbar-links">
+    <a href="/" class="nav-link">Home</a>
+    <a href="/events" class="nav-link">Events</a>
+    <a href="/dashboard" class="nav-link active">My Dashboard</a>
+    <a href="#" class="nav-link" id="logoutBtn">Logout</a>
+  </div>
+</nav>
+
+<div class="dashboard-header">
+  <div class="container">
+    <div class="dashboard-greeting">
+      <h1>Welcome back, <span id="userName">Student</span>! 👋</h1>
+      <p>Manage your event registrations and discover new events</p>
+    </div>
+  </div>
+</div>
+
+<section class="section">
+  <div class="container">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px">
+      <div class="section-title" style="margin-bottom:0">My Registered Events</div>
+      <a href="/events" class="btn-register" style="padding:10px 20px;text-decoration:none">+ Register for More</a>
+    </div>
+    <div id="myEvents"><div class="loading-center"><div class="spinner"></div></div></div>
+  </div>
+</section>
+
+<footer class="footer"><p>© 2025 <strong>Vel Tech University</strong> - Campus Event Portal</p></footer>
+<div class="toast" id="toast"></div>
+
+<script>
+async function init() {
+  const sess = await fetch('/api/session').then(r=>r.json());
+  if (!sess.loggedIn) { location.href='/login?msg=Please login to view your dashboard'; return; }
+  document.getElementById('userName').textContent = sess.userName;
+  document.getElementById('logoutBtn').addEventListener('click', async()=>{
+    await fetch('/api/user/logout',{method:'POST'});
+    location.href='/';
+  });
+  loadMyEvents();
+}
+
+async function loadMyEvents() {
+  const data = await fetch('/api/my-registrations').then(r=>r.json());
+  const container = document.getElementById('myEvents');
+  if (!data.success || !data.registrations.length) {
+    container.innerHTML = `<div class="empty-state">
+      <div class="empty-icon">🎟️</div>
+      <h3>No events registered yet</h3>
+      <p>Browse and register for exciting events happening at Vel Tech!</p>
+      <a href="/events" class="btn-register-big" style="display:inline-block;padding:14px 32px;font-size:1rem;text-decoration:none">Browse Events →</a>
+    </div>`;
+    return;
+  }
+  container.innerHTML = `<div class="my-events-grid">${data.registrations.map(r => {
+    const date = new Date(r.event_date).toLocaleDateString('en-IN',{weekday:'short',day:'numeric',month:'short',year:'numeric'});
+    const img = r.image_url ? `<img src="${r.image_url}" class="my-event-img" alt="${r.title}" onerror="this.style.display='none'">` : '';
+    const regDate = new Date(r.registered_at).toLocaleDateString('en-IN');
+    return `<div class="my-event-card">
+      ${img}
+      <div class="my-event-body">
+        <span class="event-category" style="font-size:0.7rem">${r.category}</span>
+        <div class="my-event-title">${r.title}</div>
+        <div class="my-event-meta">📅 ${date}<br>📍 ${r.location}<br>✅ Registered on ${regDate}</div>
+        <div style="margin-top:10px;display:flex;gap:8px">
+          <a href="/event/${r.event_id}" class="btn-sm btn-primary" style="text-decoration:none">View</a>
+          <button class="btn-sm btn-danger" onclick="cancelReg(${r.event_id}, this)">Cancel</button>
+        </div>
+      </div>
+    </div>`;
+  }).join('')}</div>`;
+}
+
+async function cancelReg(eventId, btn) {
+  if (!confirm('Cancel registration for this event?')) return;
+  btn.textContent = '...'; btn.disabled = true;
+  const res = await fetch(`/api/cancel-registration/${eventId}`, {method:'DELETE'}).then(r=>r.json());
+  if (res.success) { showToast('Registration cancelled.', 'success'); loadMyEvents(); }
+  else { showToast(res.message, 'error'); btn.textContent='Cancel'; btn.disabled=false; }
+}
+
+function showToast(msg, type='') {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.className = 'toast show ' + type;
+  setTimeout(()=>t.className='toast', 3000);
+}
+
+init();
+</script>
+</body>
+</html>

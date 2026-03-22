@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Student Registration - Vel Tech Campus Portal</title>
+<link rel="stylesheet" href="/css/style.css">
+</head>
+<body style="background:linear-gradient(135deg,#e8eaf6,#e3f2fd)">
+<nav class="navbar">
+  <a href="/" class="navbar-brand">
+    <div class="navbar-logo">VT</div>
+    <div class="brand-text"><div class="brand-name">Vel Tech University</div><div class="brand-sub">Campus Event Portal</div></div>
+  </a>
+  <div class="navbar-links">
+    <a href="/" class="nav-link">Home</a>
+    <a href="/events" class="nav-link">Events</a>
+    <a href="/login" class="nav-link">Login</a>
+  </div>
+</nav>
+<div class="auth-container">
+  <div class="auth-card" style="max-width:560px">
+    <div class="auth-header">
+      <div class="auth-logo">VT</div>
+      <h2>Student Registration</h2>
+      <p>Join Vel Tech Campus Event Portal</p>
+    </div>
+    <div class="auth-body">
+      <div class="alert alert-error" id="errMsg"></div>
+      <div class="alert alert-success" id="succMsg"></div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Full Name *</label>
+          <input type="text" class="form-control" id="fullName" placeholder="John Doe" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Student ID</label>
+          <input type="text" class="form-control" id="studentId" placeholder="VT2021001">
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Email Address *</label>
+        <input type="email" class="form-control" id="email" placeholder="student@veltech.ac.in" required>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Department</label>
+          <select class="form-control" id="department">
+            <option value="">Select Department</option>
+            <option>Computer Science Engineering</option>
+            <option>Electronics & Communication</option>
+            <option>Mechanical Engineering</option>
+            <option>Civil Engineering</option>
+            <option>Electrical Engineering</option>
+            <option>Information Technology</option>
+            <option>Biomedical Engineering</option>
+            <option>Aerospace Engineering</option>
+            <option>MBA</option>
+            <option>MCA</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Phone Number</label>
+          <input type="tel" class="form-control" id="phone" placeholder="+91 9XXXXXXXXX">
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Password *</label>
+        <input type="password" class="form-control" id="password" placeholder="Minimum 6 characters" required>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Confirm Password *</label>
+        <input type="password" class="form-control" id="confirm" placeholder="Repeat your password" required>
+      </div>
+      <button class="btn-submit" onclick="doRegister()" id="regBtn">Create Account</button>
+      <div class="auth-footer">Already registered? <a href="/login">Login here →</a></div>
+    </div>
+  </div>
+</div>
+<script>
+async function doRegister() {
+  const name = document.getElementById('fullName').value.trim();
+  const email = document.getElementById('email').value.trim();
+  const password = document.getElementById('password').value;
+  const confirm = document.getElementById('confirm').value;
+  const dept = document.getElementById('department').value;
+  const phone = document.getElementById('phone').value;
+  const sid = document.getElementById('studentId').value;
+  const err = document.getElementById('errMsg');
+  const succ = document.getElementById('succMsg');
+  err.style.display='none'; succ.style.display='none';
+  if (!name || !email || !password) { err.textContent='Please fill all required fields.'; err.style.display='block'; return; }
+  if (password.length < 6) { err.textContent='Password must be at least 6 characters.'; err.style.display='block'; return; }
+  if (password !== confirm) { err.textContent='Passwords do not match.'; err.style.display='block'; return; }
+  const btn = document.getElementById('regBtn');
+  btn.textContent = 'Creating account...'; btn.disabled = true;
+  const res = await fetch('/api/user/register', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({full_name:name, email, password, student_id:sid, department:dept, phone})
+  }).then(r=>r.json());
+  btn.textContent = 'Create Account'; btn.disabled = false;
+  if (res.success) {
+    succ.textContent = res.message + ' Redirecting to login...';
+    succ.style.display = 'block';
+    setTimeout(()=>location.href='/login', 2000);
+  } else {
+    err.textContent = res.message; err.style.display = 'block';
+  }
+}
+</script>
+</body>
+</html>

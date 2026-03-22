@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin Panel - Vel Tech Campus Portal</title>
+<link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<nav class="navbar">
+  <a href="/admin" class="navbar-brand">
+    <div class="navbar-logo">VT</div>
+    <div class="brand-text"><div class="brand-name">Vel Tech Admin</div><div class="brand-sub">Campus Event Management</div></div>
+  </a>
+  <div class="navbar-links">
+    <a href="/" class="nav-link" target="_blank">View Site</a>
+    <a href="#" class="nav-link" id="logoutAdminBtn">Logout</a>
+  </div>
+</nav>
+
+<div class="admin-layout">
+  <aside class="admin-sidebar">
+    <div class="admin-sidebar-logo">
+      <div style="font-weight:700;font-size:0.95rem">Admin Panel</div>
+      <div style="font-size:0.78rem;opacity:0.7" id="adminName"></div>
+    </div>
+    <a href="#" class="sidebar-link active" onclick="showSection('dashboard',this)"><span>📊</span> Dashboard</a>
+    <a href="#" class="sidebar-link" onclick="showSection('events',this)"><span>🎉</span> Manage Events</a>
+    <a href="#" class="sidebar-link" onclick="showSection('registrations',this)"><span>📋</span> Registrations</a>
+    <a href="#" class="sidebar-link" onclick="showSection('students',this)"><span>👨‍🎓</span> Students</a>
+    <a href="/admin/add-event" class="sidebar-link"><span>➕</span> Add New Event</a>
+  </aside>
+
+  <main class="admin-main">
+    <!-- DASHBOARD -->
+    <div id="sec-dashboard">
+      <div class="admin-topbar">
+        <div class="admin-title">📊 Dashboard Overview</div>
+      </div>
+      <div class="stats-grid">
+        <div class="stat-card"><div class="stat-icon blue">🎉</div><div class="stat-info"><h3 id="sTotalEvents">—</h3><p>Total Events</p></div></div>
+        <div class="stat-card"><div class="stat-icon green">👨‍🎓</div><div class="stat-info"><h3 id="sTotalUsers">—</h3><p>Registered Students</p></div></div>
+        <div class="stat-card"><div class="stat-icon orange">📋</div><div class="stat-info"><h3 id="sTotalRegs">—</h3><p>Total Registrations</p></div></div>
+      </div>
+      <h3 style="margin-bottom:16px;color:var(--primary)">Recent Registrations</h3>
+      <div id="recentRegs"><div class="loading-center"><div class="spinner"></div></div></div>
+    </div>
+
+    <!-- EVENTS -->
+    <div id="sec-events" style="display:none">
+      <div class="admin-topbar">
+        <div class="admin-title">🎉 Manage Events</div>
+        <a href="/admin/add-event" class="btn-register" style="text-decoration:none;padding:10px 20px">+ Add Event</a>
+      </div>
+      <div id="eventsTable"><div class="loading-center"><div class="spinner"></div></div></div>
+    </div>
+
+    <!-- REGISTRATIONS -->
+    <div id="sec-registrations" style="display:none">
+      <div class="admin-topbar"><div class="admin-title">📋 All Registrations</div></div>
+      <div id="regsTable"><div class="loading-center"><div class="spinner"></div></div></div>
+    </div>
+
+    <!-- STUDENTS -->
+    <div id="sec-students" style="display:none">
+      <div class="admin-topbar"><div class="admin-title">👨‍🎓 Registered Students</div></div>
+      <div id="studentsTable"><div class="loading-center"><div class="spinner"></div></div></div>
+    </div>
+  </main>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+async function init() {
+  const sess = await fetch('/api/session').then(r=>r.json());
+  if (!sess.isAdmin) { location.href='/admin/login?msg=Admin login required'; return; }
+  document.getElementById('adminName').textContent = sess.adminName;
+  document.getElementById('logoutAdminBtn').addEventListener('click', async()=>{
+    await fetch('/api/admin/logout',{method:'POST'}); location.href='/admin/login';
+  });
+  loadStats(); loadRecentRegs();
+}
+
+async function loadStats() {
+  const d = await fetch('/api/admin/stats').then(r=>r.json());
+  if (d.success) {
+    document.getElementById('sTotalEvents').textContent = d.stats.total_events;
+    document.getElementById('sTotalUsers').textContent = d.stats.total_users;
+    document.getElementById('sTotalRegs').textContent = d.stats.total_registrations;
+  }
+}
+
+async function loadRecentRegs() {
+  const d = await fetch('/api/admin/registrations').then(r=>r.json());
+  const recent = (d.registrations||[]).slice(0,5);
+  document.getElementById('recentRegs').innerHTML = renderRegsTable(recent, true);
+}
+
+async function loadEvents() {
+  const d = await fetch('/api/events').then(r=>r.json());
+  const events = d.events || [];
+  document.getElementById('eventsTable').innerHTML = `<div style="overflow-x:auto"><table class="data-table">
+    <thead><tr><th>#</th><th>Image</th><th>Title</th><th>Category</th><th>Date</th><th>Location</th><th>Seats</th><th>Registered</th><th>Action</th></tr></thead>
+    <tbody>${events.map(e=>{
+      const date = new Date(e.event_date).toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'});
+      const img = e.image_url ? `<img src="${e.image_url}" style="width:60px;height:40px;object-fit:cover;border-radius:6px">` : '—';
+      return `<tr>
+        <td>${e.id}</td>
+        <td>${img}</td>
+        <td style="font-weight:600">${e.title}</td>
+        <td><span class="badge badge-blue">${e.category}</span></td>
+        <td>${date}</td>
+        <td>${e.location}</td>
+        <td>${e.max_seats}</td>
+        <td>${e.registered_count}</td>
+        <td><button class="btn-sm btn-danger" onclick="deleteEvent(${e.id},this)">🗑 Delete</button></td>
+      </tr>`;
+    }).join('')}</tbody>
+  </table></div>`;
+}
+
+async function loadRegistrations() {
+  const d = await fetch('/api/admin/registrations').then(r=>r.json());
+  document.getElementById('regsTable').innerHTML = renderRegsTable(d.registrations||[], false);
+}
+
+function renderRegsTable(regs, mini) {
+  if (!regs.length) return '<p style="text-align:center;padding:40px;color:#999">No registrations yet.</p>';
+  return `<div style="overflow-x:auto"><table class="data-table">
+    <thead><tr><th>#</th><th>Student</th><th>Email</th><th>Event</th><th>Category</th><th>Date Registered</th>${mini?'':'<th>Action</th>'}</tr></thead>
+    <tbody>${regs.map(r=>{
+      const dt = new Date(r.registered_at).toLocaleDateString('en-IN');
+      return `<tr>
+        <td>${r.id}</td>
+        <td style="font-weight:600">${r.student_name}</td>
+        <td>${r.email}</td>
+        <td>${r.event_title}</td>
+        <td><span class="badge badge-orange">${r.category}</span></td>
+        <td>${dt}</td>
+        ${mini?'':`<td><button class="btn-sm btn-danger" onclick="deleteReg(${r.id},this)">Remove</button></td>`}
+      </tr>`;
+    }).join('')}</tbody>
+  </table></div>`;
+}
+
+async function loadStudents() {
+  const d = await fetch('/api/admin/users').then(r=>r.json());
+  const users = d.users||[];
+  document.getElementById('studentsTable').innerHTML = `<div style="overflow-x:auto"><table class="data-table">
+    <thead><tr><th>#</th><th>Name</th><th>Email</th><th>Student ID</th><th>Department</th><th>Phone</th><th>Joined</th></tr></thead>
+    <tbody>${users.map(u=>`<tr>
+      <td>${u.id}</td>
+      <td style="font-weight:600">${u.full_name}</td>
+      <td>${u.email}</td>
+      <td>${u.student_id||'—'}</td>
+      <td>${u.department||'—'}</td>
+      <td>${u.phone||'—'}</td>
+      <td>${new Date(u.created_at).toLocaleDateString('en-IN')}</td>
+    </tr>`).join('')}</tbody>
+  </table></div>`;
+}
+
+async function deleteEvent(id, btn) {
+  if (!confirm('Delete this event and all its registrations?')) return;
+  btn.disabled=true;
+  const res = await fetch(`/api/admin/events/${id}`,{method:'DELETE'}).then(r=>r.json());
+  if (res.success) { showToast('Event deleted.', 'success'); loadEvents(); loadStats(); }
+  else showToast(res.message, 'error');
+}
+
+async function deleteReg(id, btn) {
+  if (!confirm('Remove this registration?')) return;
+  btn.disabled=true;
+  const res = await fetch(`/api/admin/registrations/${id}`,{method:'DELETE'}).then(r=>r.json());
+  if (res.success) { showToast('Removed.', 'success'); loadRegistrations(); loadStats(); }
+  else showToast(res.message, 'error');
+}
+
+function showSection(name, link) {
+  document.querySelectorAll('[id^="sec-"]').forEach(el=>el.style.display='none');
+  document.querySelectorAll('.sidebar-link').forEach(l=>l.classList.remove('active'));
+  document.getElementById('sec-'+name).style.display='block';
+  if (link) link.classList.add('active');
+  if (name==='events') loadEvents();
+  if (name==='registrations') loadRegistrations();
+  if (name==='students') loadStudents();
+  if (name==='dashboard') { loadStats(); loadRecentRegs(); }
+}
+
+function showToast(msg, type='') {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.className = 'toast show ' + type;
+  setTimeout(()=>t.className='toast', 3000);
+}
+
+init();
+</script>
+</body>
+</html>

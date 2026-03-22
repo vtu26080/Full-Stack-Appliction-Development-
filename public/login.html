@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Student Login - Vel Tech Campus Portal</title>
+<link rel="stylesheet" href="/css/style.css">
+</head>
+<body style="background:linear-gradient(135deg,#e8eaf6,#e3f2fd)">
+<nav class="navbar">
+  <a href="/" class="navbar-brand">
+    <div class="navbar-logo">VT</div>
+    <div class="brand-text"><div class="brand-name">Vel Tech University</div><div class="brand-sub">Campus Event Portal</div></div>
+  </a>
+  <div class="navbar-links">
+    <a href="/" class="nav-link">Home</a>
+    <a href="/events" class="nav-link">Events</a>
+    <a href="/register" class="nav-link btn-nav">Register</a>
+  </div>
+</nav>
+<div class="auth-container">
+  <div class="auth-card">
+    <div class="auth-header">
+      <div class="auth-logo">VT</div>
+      <h2>Student Login</h2>
+      <p>Sign in to your Vel Tech account</p>
+    </div>
+    <div class="auth-body">
+      <div id="msgBanner" style="display:none;padding:10px 14px;border-radius:8px;margin-bottom:16px;font-size:0.88rem;background:#fff3e0;color:#e65100;border:1px solid #ffcc80"></div>
+      <div class="alert alert-error" id="errMsg"></div>
+      <div class="form-group">
+        <label class="form-label">Email Address</label>
+        <input type="email" class="form-control" id="email" placeholder="student@veltech.ac.in">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Password</label>
+        <input type="password" class="form-control" id="password" placeholder="Enter your password" onkeydown="if(event.key==='Enter')doLogin()">
+      </div>
+      <button class="btn-submit" onclick="doLogin()" id="loginBtn">Login to Portal</button>
+      <div class="auth-footer">New student? <a href="/register">Create an account →</a></div>
+      <div style="text-align:center;margin-top:16px;padding-top:16px;border-top:1px solid #eee">
+        <a href="/admin/login" style="color:var(--text-light);font-size:0.85rem;text-decoration:none">🔒 Admin Login</a>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+const params = new URLSearchParams(location.search);
+if (params.get('msg')) {
+  const b = document.getElementById('msgBanner');
+  b.textContent = params.get('msg'); b.style.display='block';
+}
+
+async function doLogin() {
+  const email = document.getElementById('email').value;
+  const password = document.getElementById('password').value;
+  const err = document.getElementById('errMsg');
+  err.style.display='none';
+  if (!email || !password) { err.textContent='Please fill all fields.'; err.style.display='block'; return; }
+  const btn = document.getElementById('loginBtn');
+  btn.textContent = 'Logging in...'; btn.disabled = true;
+  const res = await fetch('/api/user/login', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({email, password})
+  }).then(r=>r.json());
+  btn.textContent = 'Login to Portal'; btn.disabled = false;
+  if (res.success) {
+    location.href = '/dashboard';
+  } else {
+    err.textContent = res.message; err.style.display = 'block';
+  }
+}
+</script>
+</body>
+</html>

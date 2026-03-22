@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Event Details - Vel Tech Campus Portal</title>
+<link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<nav class="navbar">
+  <a href="/" class="navbar-brand">
+    <div class="navbar-logo">VT</div>
+    <div class="brand-text"><div class="brand-name">Vel Tech University</div><div class="brand-sub">Campus Event Portal</div></div>
+  </a>
+  <div class="navbar-links">
+    <a href="/" class="nav-link">Home</a>
+    <a href="/events" class="nav-link">Events</a>
+    <a href="#" id="dashLink" class="nav-link" style="display:none">My Dashboard</a>
+    <a href="#" id="logoutBtn" class="nav-link" style="display:none">Logout</a>
+    <a href="/login" class="nav-link" id="loginLink">Login</a>
+    <a href="/register" class="nav-link btn-nav" id="registerLink">Register</a>
+  </div>
+</nav>
+
+<div id="eventContent"><div class="loading-center" style="min-height:60vh"><div class="spinner"></div></div></div>
+
+<footer class="footer"><p>© 2026 <strong>Vel Tech University</strong> - Campus Event Portal</p></footer>
+<div class="toast" id="toast"></div>
+
+<script>
+const eventId = location.pathname.split('/').pop();
+let userLoggedIn = false;
+
+async function init() {
+  const [sess, data] = await Promise.all([
+    fetch('/api/session').then(r=>r.json()),
+    fetch(`/api/events/${eventId}`).then(r=>r.json())
+  ]);
+  userLoggedIn = sess.loggedIn;
+  if (sess.loggedIn) {
+    document.getElementById('loginLink').style.display='none';
+    document.getElementById('registerLink').style.display='none';
+    document.getElementById('dashLink').style.display='block';
+    document.getElementById('dashLink').href='/dashboard';
+    document.getElementById('logoutBtn').style.display='block';
+  }
+  document.getElementById('logoutBtn').addEventListener('click', async()=>{
+    await fetch('/api/user/logout',{method:'POST'});
+    location.href='/';
+  });
+  if (!data.success) { document.getElementById('eventContent').innerHTML='<div class="empty-state"><div class="empty-icon">❌</div><h3>Event not found</h3><a href="/events" class="btn-register">Back to Events</a></div>'; return; }
+  renderEvent(data.event);
+}
+
+function renderEvent(e) {
+  const date = new Date(e.event_date);
+  const dateStr = date.toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+  const timeStr = date.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'});
+  const seats = e.max_seats - e.registered_count;
+  const pct = (e.registered_count/e.max_seats)*100;
+  const imgUrl = e.image_url || 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=1200&q=80';
+
+  document.title = `${e.title} - Vel Tech Campus Portal`;
+
+  let regBtn = '';
+  if (!userLoggedIn) {
+    regBtn = `<div style="background:#fff3e0;border-radius:12px;padding:20px;margin-top:24px">
+      <p style="color:#e65100;font-weight:600;margin-bottom:12px">🔐 Please login to register for this event</p>
+      <a href="/login" class="btn-register-big" style="display:inline-block;padding:14px 32px;font-size:1rem;text-decoration:none">Login to Register</a>
+      <a href="/register" style="margin-left:12px;color:var(--primary);font-weight:600;text-decoration:none">New student? Sign up →</a>
+    </div>`;
+  } else if (seats <= 0) {
+    regBtn = `<button class="btn-register-big" style="background:#bdbdbd;cursor:not-allowed" disabled>⛔ Event Fully Booked</button>`;
+  } else {
+    regBtn = `<button class="btn-register-big" onclick="registerEvent(${e.id})" id="regBtn">🎟️ Register for this Event</button>`;
+  }
+
+  document.getElementById('eventContent').innerHTML = `
+    <div class="event-detail-hero">
+      <img src="${imgUrl}" class="event-detail-img" alt="${e.title}" onerror="this.src='https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=1200&q=80'">
+      <div class="event-detail-overlay"></div>
+      <div class="event-detail-info">
+        <span class="event-category" style="background:rgba(255,111,0,0.9);color:white">${e.category}</span>
+        <h1>${e.title}</h1>
+        <div style="opacity:0.9;font-size:0.9rem">📅 ${dateStr} at ${timeStr}</div>
+      </div>
+    </div>
+    <div class="event-content">
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px;margin-bottom:24px">
+        <a href="/events" style="color:var(--primary);text-decoration:none;font-weight:600">← Back to All Events</a>
+        <span class="badge badge-blue">${e.registered_count}/${e.max_seats} Registered</span>
+      </div>
+      <div class="event-meta-grid">
+        <div class="meta-card"><div class="meta-icon">📅</div><div><div class="meta-label">Date</div><div class="meta-val">${dateStr}</div></div></div>
+        <div class="meta-card"><div class="meta-icon">⏰</div><div><div class="meta-label">Time</div><div class="meta-val">${timeStr}</div></div></div>
+        <div class="meta-card"><div class="meta-icon">📍</div><div><div class="meta-label">Venue</div><div class="meta-val">${e.location}</div></div></div>
+        <div class="meta-card"><div class="meta-icon">💺</div><div><div class="meta-label">Available Seats</div><div class="meta-val">${seats > 0 ? seats + ' seats left' : 'Fully Booked'}</div></div></div>
+      </div>
+      <div class="progress-bar-wrap" style="height:10px;margin-bottom:8px">
+        <div class="progress-bar-fill" style="width:${Math.min(pct,100)}%"></div>
+      </div>
+      <p style="font-size:0.82rem;color:var(--text-light);margin-bottom:24px">${e.registered_count} of ${e.max_seats} seats filled (${Math.round(pct)}%)</p>
+      <h3 style="margin-bottom:12px;color:var(--primary)">About this Event</h3>
+      <p class="event-desc-full">${e.description}</p>
+      ${regBtn}
+    </div>`;
+}
+
+async function registerEvent(id) {
+  const btn = document.getElementById('regBtn');
+  btn.textContent = '⏳ Registering...';
+  btn.disabled = true;
+  const res = await fetch('/api/register-event', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({event_id: id})
+  }).then(r=>r.json());
+  if (res.success) {
+    btn.textContent = '✅ Registered!';
+    btn.style.background = '#4caf50';
+    showToast('Successfully registered! 🎉', 'success');
+    setTimeout(()=>location.href='/dashboard', 2000);
+  } else {
+    btn.textContent = '🎟️ Register for this Event';
+    btn.disabled = false;
+    showToast(res.message, 'error');
+  }
+}
+
+function showToast(msg, type='') {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.className = 'toast show ' + type;
+  setTimeout(()=>t.className='toast', 4000);
+}
+
+init();
+</script>
+</body>
+</html>

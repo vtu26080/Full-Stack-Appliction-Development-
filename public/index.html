@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vel Tech University - Campus Event Portal</title>
+<link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<nav class="navbar">
+  <a href="/" class="navbar-brand">
+    <div class="navbar-logo">VT</div>
+    <div class="brand-text">
+      <div class="brand-name">Vel Tech University</div>
+      <div class="brand-sub">Campus Event Portal</div>
+    </div>
+  </a>
+  <div class="navbar-links" id="navLinks">
+    <a href="/" class="nav-link active">Home</a>
+    <a href="/events" class="nav-link">Events</a>
+    <a href="#" class="nav-link" id="dashLink" style="display:none">My Dashboard</a>
+    <a href="#" class="nav-link" id="logoutBtn" style="display:none">Logout</a>
+    <a href="/login" class="nav-link" id="loginLink">Login</a>
+    <a href="/register" class="nav-link btn-nav" id="registerLink">Register</a>
+  </div>
+</nav>
+
+<section class="hero">
+  <div class="hero-content">
+    <div class="hero-badge">🎓 Vel Tech University - Chennai</div>
+    <h1>Discover & Join Campus Events</h1>
+    <p>Explore hackathons, cultural fests, workshops, sports meets, and academic conferences. Register in seconds and make the most of your university life.</p>
+    <div class="hero-btns">
+      <a href="/events" class="btn-hero-primary">🔍 Browse All Events</a>
+      <a href="/register" class="btn-hero-outline" id="heroRegisterBtn">Join as Student</a>
+    </div>
+  </div>
+</section>
+
+<div class="stats-bar" id="statsBar">
+  <div class="stat-item"><div class="stat-num" id="statEvents">—</div><div class="stat-label">Events This Year</div></div>
+  <div class="stat-item"><div class="stat-num" id="statStudents">—</div><div class="stat-label">Students Registered</div></div>
+  <div class="stat-item"><div class="stat-num" id="statRegs">—</div><div class="stat-label">Total Registrations</div></div>
+  <div class="stat-item"><div class="stat-num">8+</div><div class="stat-label">Categories</div></div>
+</div>
+
+<section class="section" style="background:white">
+  <div class="container">
+    <div class="section-header">
+      <div class="section-title">Featured Events</div>
+      <div class="section-sub">Don't miss out on these exciting upcoming events at Vel Tech</div>
+    </div>
+    <div class="events-grid" id="featuredEvents">
+      <div class="loading-center"><div class="spinner"></div></div>
+    </div>
+    <div style="text-align:center;margin-top:32px">
+      <a href="/events" class="btn-register-big" style="display:inline-block;padding:14px 40px;font-size:1rem">View All Events →</a>
+    </div>
+  </div>
+</section>
+
+<section class="section" style="background:linear-gradient(135deg,#e8eaf6,#e3f2fd)">
+  <div class="container">
+    <div class="section-header">
+      <div class="section-title">Why Vel Tech Events?</div>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:24px">
+      <div style="background:white;padding:28px;border-radius:12px;text-align:center;box-shadow:var(--card-shadow)">
+        <div style="font-size:2.5rem;margin-bottom:12px">🏆</div>
+        <h3 style="margin-bottom:8px;color:var(--primary)">Win Prizes</h3>
+        <p style="color:var(--text-light);font-size:0.9rem">Compete and win cash prizes, trophies, and certificates across various events.</p>
+      </div>
+      <div style="background:white;padding:28px;border-radius:12px;text-align:center;box-shadow:var(--card-shadow)">
+        <div style="font-size:2.5rem;margin-bottom:12px">🤝</div>
+        <h3 style="margin-bottom:8px;color:var(--primary)">Network</h3>
+        <p style="color:var(--text-light);font-size:0.9rem">Meet industry experts, alumni, and fellow students to build your professional network.</p>
+      </div>
+      <div style="background:white;padding:28px;border-radius:12px;text-align:center;box-shadow:var(--card-shadow)">
+        <div style="font-size:2.5rem;margin-bottom:12px">📜</div>
+        <h3 style="margin-bottom:8px;color:var(--primary)">Get Certified</h3>
+        <p style="color:var(--text-light);font-size:0.9rem">Earn valuable certificates and participation records for your portfolio.</p>
+      </div>
+      <div style="background:white;padding:28px;border-radius:12px;text-align:center;box-shadow:var(--card-shadow)">
+        <div style="font-size:2.5rem;margin-bottom:12px">🚀</div>
+        <h3 style="margin-bottom:8px;color:var(--primary)">Grow Skills</h3>
+        <p style="color:var(--text-light);font-size:0.9rem">Learn from workshops, hackathons, and expert talks to boost your career readiness.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer class="footer">
+  <p>© 2025 <strong>Vel Tech University</strong> - Campus Event Portal | Avadi-Tiruvallur High Road, Chennai, Tamil Nadu</p>
+</footer>
+
+<div class="toast" id="toast"></div>
+
+<script>
+async function init() {
+  const sess = await fetch('/api/session').then(r=>r.json());
+  if (sess.loggedIn) {
+    document.getElementById('loginLink').style.display = 'none';
+    document.getElementById('registerLink').style.display = 'none';
+    document.getElementById('dashLink').style.display = 'block';
+    document.getElementById('dashLink').href = '/dashboard';
+    document.getElementById('logoutBtn').style.display = 'block';
+    document.getElementById('heroRegisterBtn').textContent = '📅 My Dashboard';
+    document.getElementById('heroRegisterBtn').href = '/dashboard';
+  }
+  document.getElementById('logoutBtn').addEventListener('click', async () => {
+    await fetch('/api/user/logout', {method:'POST'});
+    location.reload();
+  });
+  loadStats();
+  loadFeatured();
+}
+
+async function loadStats() {
+  try {
+    const d = await fetch('/api/admin/stats').then(r=>r.json()).catch(()=>null);
+    const ev = await fetch('/api/events').then(r=>r.json());
+    if (ev.success) document.getElementById('statEvents').textContent = ev.events.length;
+    if (d && d.success) {
+      document.getElementById('statStudents').textContent = d.stats.total_users;
+      document.getElementById('statRegs').textContent = d.stats.total_registrations;
+    }
+  } catch(e){}
+}
+
+async function loadFeatured() {
+  const data = await fetch('/api/events').then(r=>r.json());
+  const grid = document.getElementById('featuredEvents');
+  if (!data.success || !data.events.length) { grid.innerHTML = '<p style="text-align:center;padding:40px;color:#999">No events available.</p>'; return; }
+  const featured = data.events.slice(0, 4);
+  grid.innerHTML = featured.map(e => renderCard(e)).join('');
+}
+
+function renderCard(e) {
+  const date = new Date(e.event_date).toLocaleDateString('en-IN', {day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'});
+  const seats = e.max_seats - e.registered_count;
+  const img = e.image_url ? `<img src="${e.image_url}" class="event-img" alt="${e.title}" onerror="this.style.display='none'">` : `<div class="event-img-placeholder">🎓</div>`;
+  return `<div class="event-card">
+    ${img}
+    <div class="event-body">
+      <span class="event-category">${e.category}</span>
+      <div class="event-title">${e.title}</div>
+      <div class="event-desc">${e.description?.substring(0,100)}...</div>
+      <div class="event-meta">
+        <div class="event-meta-item"><span>📅</span><span>${date}</span></div>
+        <div class="event-meta-item"><span>📍</span><span>${e.location}</span></div>
+      </div>
+      <div class="event-footer">
+        <div class="seats-badge ${seats<=0?'full'?''':''}">${seats>0?seats+' seats left':'Fully Booked'}</div>
+        <a href="/event/${e.id}" class="btn-register">View & Register</a>
+      </div>
+    </div>
+  </div>`;
+}
+
+function showToast(msg, type='') {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.className = 'toast show ' + type;
+  setTimeout(()=>t.className='toast', 3000);
+}
+
+init();
+</script>
+</body>
+</html>

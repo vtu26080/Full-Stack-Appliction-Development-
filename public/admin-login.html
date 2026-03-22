@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin Login - Vel Tech Campus Portal</title>
+<link rel="stylesheet" href="/css/style.css">
+</head>
+<body style="background:linear-gradient(135deg,#1a237e,#283593)">
+<div class="auth-container">
+  <div class="auth-card">
+    <div class="auth-header" style="background:linear-gradient(135deg,#0d1b2a,#1a237e)">
+      <div class="auth-logo" style="font-size:1.5rem">🔒</div>
+      <h2>Admin Portal</h2>
+      <p>Vel Tech University - Staff Access Only</p>
+    </div>
+    <div class="auth-body">
+      <div id="msgBanner" style="display:none;padding:10px 14px;border-radius:8px;margin-bottom:16px;font-size:0.88rem;background:#fff3e0;color:#e65100"></div>
+      <div class="alert alert-error" id="errMsg"></div>
+      <div class="form-group">
+        <label class="form-label">Username or Email</label>
+        <input type="text" class="form-control" id="username" placeholder="veltech_admin">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Password</label>
+        <input type="password" class="form-control" id="password" placeholder="Admin password" onkeydown="if(event.key==='Enter')doLogin()">
+      </div>
+      <button class="btn-submit" onclick="doLogin()" id="loginBtn">Access Admin Portal</button>
+      <div class="auth-footer" style="margin-top:16px">
+        <a href="/" style="color:var(--text-light);font-size:0.85rem">← Back to Student Portal</a>
+      </div>
+      <div style="background:#f5f5f5;border-radius:8px;padding:12px;margin-top:16px;font-size:0.82rem;color:#666">
+        <strong>Default Credentials:</strong><br>
+        Username: <code>veltech_admin</code><br>
+        Password: <code>admin@veltech123</code>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+const params = new URLSearchParams(location.search);
+if (params.get('msg')) { const b=document.getElementById('msgBanner'); b.textContent=params.get('msg'); b.style.display='block'; }
+
+async function doLogin() {
+  const username = document.getElementById('username').value;
+  const password = document.getElementById('password').value;
+  const err = document.getElementById('errMsg');
+  err.style.display='none';
+  if (!username || !password) { err.textContent='Please fill all fields.'; err.style.display='block'; return; }
+  const btn = document.getElementById('loginBtn');
+  btn.textContent = 'Verifying...'; btn.disabled=true;
+  const res = await fetch('/api/admin/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username,password})}).then(r=>r.json());
+  btn.textContent='Access Admin Portal'; btn.disabled=false;
+  if (res.success) location.href='/admin';
+  else { err.textContent=res.message; err.style.display='block'; }
+}
+</script>
+</body>
+</html>

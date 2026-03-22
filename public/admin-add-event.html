@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Add Event - Vel Tech Admin Portal</title>
+<link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<nav class="navbar">
+  <a href="/admin" class="navbar-brand">
+    <div class="navbar-logo">VT</div>
+    <div class="brand-text"><div class="brand-name">Vel Tech Admin</div><div class="brand-sub">Campus Event Management</div></div>
+  </a>
+  <div class="navbar-links">
+    <a href="/admin" class="nav-link">← Admin Panel</a>
+    <a href="#" class="nav-link" id="logoutBtn">Logout</a>
+  </div>
+</nav>
+
+<div style="max-width:700px;margin:40px auto;padding:0 1rem">
+  <div style="background:white;border-radius:16px;overflow:hidden;box-shadow:var(--card-shadow)">
+    <div style="background:linear-gradient(135deg,var(--primary),var(--primary-light));padding:28px;color:white">
+      <h2 style="font-size:1.5rem;font-weight:800">➕ Create New Event</h2>
+      <p style="opacity:0.85;margin-top:4px">Add a new event to the Vel Tech Campus Portal</p>
+    </div>
+    <div style="padding:32px">
+      <div class="alert alert-error" id="errMsg"></div>
+      <div class="alert alert-success" id="succMsg"></div>
+
+      <div class="form-group">
+        <label class="form-label">Event Title *</label>
+        <input type="text" class="form-control" id="title" placeholder="e.g., Annual Tech Fest 2025">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Description *</label>
+        <textarea class="form-control" id="description" rows="4" placeholder="Describe the event in detail..."></textarea>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Event Date & Time *</label>
+          <input type="datetime-local" class="form-control" id="event_date">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Category</label>
+          <select class="form-control" id="category">
+            <option value="General">General</option>
+            <option value="Technology">Technology</option>
+            <option value="Hackathon">Hackathon</option>
+            <option value="Cultural">Cultural</option>
+            <option value="Academic">Academic</option>
+            <option value="Sports">Sports</option>
+            <option value="Workshop">Workshop</option>
+            <option value="Entrepreneurship">Entrepreneurship</option>
+            <option value="Science">Science</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Location</label>
+          <input type="text" class="form-control" id="location" placeholder="Vel Tech Auditorium">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Max Seats</label>
+          <input type="number" class="form-control" id="max_seats" value="100" min="1">
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Event Image URL</label>
+        <input type="url" class="form-control" id="image_url" placeholder="https://... (Unsplash or other image URL)">
+        <div style="margin-top:8px;font-size:0.8rem;color:var(--text-light)">Or upload an image file:</div>
+        <input type="file" class="form-control" id="image_file" accept="image/*" style="margin-top:6px">
+        <div id="imgPreview" style="margin-top:12px"></div>
+      </div>
+      <button class="btn-submit" onclick="createEvent()" id="submitBtn">🚀 Create Event</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+document.getElementById('logoutBtn').addEventListener('click', async()=>{
+  await fetch('/api/admin/logout',{method:'POST'}); location.href='/admin/login';
+});
+
+document.getElementById('image_url').addEventListener('input', function() {
+  const preview = document.getElementById('imgPreview');
+  if (this.value) preview.innerHTML = `<img src="${this.value}" style="max-width:200px;border-radius:8px;max-height:120px;object-fit:cover" onerror="this.remove()">`;
+  else preview.innerHTML = '';
+});
+
+document.getElementById('image_file').addEventListener('change', function() {
+  const file = this.files[0];
+  if (file) {
+    const reader = new FileReader();
+    reader.onload = e => {
+      document.getElementById('imgPreview').innerHTML = `<img src="${e.target.result}" style="max-width:200px;border-radius:8px;max-height:120px;object-fit:cover">`;
+    };
+    reader.readAsDataURL(file);
+  }
+});
+
+async function createEvent() {
+  const title = document.getElementById('title').value.trim();
+  const description = document.getElementById('description').value.trim();
+  const event_date = document.getElementById('event_date').value;
+  const location = document.getElementById('location').value.trim();
+  const category = document.getElementById('category').value;
+  const max_seats = document.getElementById('max_seats').value;
+  const image_url = document.getElementById('image_url').value.trim();
+  const image_file = document.getElementById('image_file').files[0];
+  const err = document.getElementById('errMsg');
+  const succ = document.getElementById('succMsg');
+  err.style.display='none'; succ.style.display='none';
+  if (!title || !event_date) { err.textContent='Title and date are required.'; err.style.display='block'; return; }
+  const btn = document.getElementById('submitBtn');
+  btn.textContent = 'Creating...'; btn.disabled=true;
+
+  const formData = new FormData();
+  formData.append('title', title);
+  formData.append('description', description);
+  formData.append('event_date', event_date);
+  formData.append('location', location);
+  formData.append('category', category);
+  formData.append('max_seats', max_seats);
+  formData.append('image_url', image_url);
+  if (image_file) formData.append('event_image', image_file);
+
+  const res = await fetch('/api/admin/events', {method:'POST', body: formData}).then(r=>r.json());
+  btn.textContent = '🚀 Create Event'; btn.disabled=false;
+  if (res.success) {
+    succ.textContent = res.message + ' Redirecting...'; succ.style.display='block';
+    setTimeout(()=>location.href='/admin', 1500);
+  } else { err.textContent=res.message; err.style.display='block'; }
+}
+</script>
+</body>
+</html>
