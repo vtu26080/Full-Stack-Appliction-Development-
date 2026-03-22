@@ -1,3 +1,6 @@
+# Full-Stack-Appliction-Development-
+>>>>>>> c24526dd6cd3084f1ed85881ba736a2c3316439a
+=======
 # 🎓 Vel Tech University - Campus Event & Registration Portal
 
 A full-stack web application for managing campus events, student registrations, and admin oversight at Vel Tech University.
@@ -152,3 +155,8 @@ veltech-portal/
 ---
 
 Built for Vel Tech University — Avadi-Tiruvallur High Road, Chennai, Tamil Nadu
+
+Full-Stack Application Development Project
+=======
+# Full-Stack-Appliction-Development-
+>>>>>>> c24526dd6cd3084f1ed85881ba736a2c3316439a
