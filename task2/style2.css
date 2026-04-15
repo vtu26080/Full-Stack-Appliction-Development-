@@ -1,0 +1,91 @@
+body {
+    font-family: Arial;
+    padding: 20px;
+    background: #f2f2f2;
+  }
+
+  h1, h2 {
+    margin-bottom: 10px;
+  }
+
+  /* Form Box */
+  .form-box {
+    background: white;
+    padding: 15px;
+    margin-bottom: 20px;
+    border: 1px solid #ccc;
+  }
+
+  .form-row {
+    margin-bottom: 10px;
+  }
+
+  .form-row input,
+  .form-row select {
+    padding: 5px;
+    width: 200px;
+  }
+
+  .form-row button {
+    padding: 6px 12px;
+    background: black;
+    color: white;
+    border: none;
+    cursor: pointer;
+  }
+
+  .error {
+    color: red;
+    font-size: 12px;
+  }
+
+  /* Filters */
+  .filters {
+    margin-bottom: 15px;
+  }
+
+  .filters input,
+  .filters select {
+    padding: 5px;
+  }
+
+  /* Department Count */
+  .dept-counts span {
+    padding: 4px 8px;
+    background: #ddd;
+    cursor: pointer;
+    margin-right: 5px;
+  }
+
+  .dept-counts .active {
+    background: black;
+    color: white;
+  }
+
+  /* Table */
+  table {
+    width: 100%;
+    background: white;
+    border-collapse: collapse;
+  }
+
+  th, td {
+    padding: 8px;
+    border: 1px solid #ccc;
+  }
+
+  th {
+    background: #eee;
+  }
+
+  .del-btn {
+    background: none;
+    border: none;
+    color: red;
+    cursor: pointer;
+  }
+
+  .empty {
+    text-align: center;
+    color: gray;
+  }

@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="stylesheet" href="style2.css">
+<title>Employee Records</title>
+</head>
+<body>
+
+<h1>Employee Records</h1>
+
+<!-- Add Record Form -->
+<div class="form-box">
+  <h2>Add New Record</h2>
+  <div class="form-row">
+    <input type="text" id="inName" placeholder="Full Name">
+    <select id="inDept">
+      <option value="">Select Department</option>
+      <option>Engineering</option>
+      <option>Design</option>
+      <option>Finance</option>
+      <option>Marketing</option>
+      <option>HR</option>
+      <option>Operations</option>
+      <option>Product</option>
+    </select>
+    <input type="text" id="inRole" placeholder="Role / Position">
+    <input type="date" id="inDate">
+    <button onclick="addRecord()">Add</button>
+  </div>
+  <div class="error" id="formError"></div>
+</div>
+
+<!-- Filters -->
+<div class="filters">
+  <input type="text" id="search" placeholder="Search name or role…" oninput="render()">
+  <select id="deptFilter" onchange="render()">
+    <option value="">All Departments</option>
+    <option>Engineering</option>
+    <option>Design</option>
+    <option>Finance</option>
+    <option>Marketing</option>
+    <option>HR</option>
+    <option>Operations</option>
+    <option>Product</option>
+  </select>
+  <select id="sortBy" onchange="render()">
+    <option value="name-asc">Name A–Z</option>
+    <option value="name-desc">Name Z–A</option>
+    <option value="date-desc">Date (Newest)</option>
+    <option value="date-asc">Date (Oldest)</option>
+  </select>
+</div>
+
+<!-- Department Counts -->
+<div class="dept-counts" id="deptCounts"></div>
+
+<!-- Table -->
+<table>
+  <thead>
+    <tr>
+      <th onclick="toggleSort('name')" id="th-name">Name ↕</th>
+      <th>Department</th>
+      <th onclick="toggleSort('date')" id="th-date">Join Date ↕</th>
+      <th>Role</th>
+      <th>Action</th>
+    </tr>
+  </thead>
+  <tbody id="tbody"></tbody>
+</table>
+<div class="empty" id="empty" style="display:none">No records found.</div>
+<div class="footer" id="footer"></div>
+
+<script>
+let records = [];
+let activeDept = '';
+
+function addRecord() {
+  const name = document.getElementById('inName').value.trim();
+  const dept = document.getElementById('inDept').value;
+  const role = document.getElementById('inRole').value.trim();
+  const date = document.getElementById('inDate').value;
+  const err = document.getElementById('formError');
+
+  if (!name || !dept || !role || !date) { err.textContent = 'Please fill in all fields.'; return; }
+  err.textContent = '';
+
+  records.push({ name, dept, role, date });
+
+  // Clear inputs
+  document.getElementById('inName').value = '';
+  document.getElementById('inDept').value = '';
+  document.getElementById('inRole').value = '';
+  document.getElementById('inDate').value = '';
+
+  render();
+}
+
+function deleteRecord(index) {
+  records.splice(index, 1);
+  render();
+}
+
+function toggleSort(field) {
+  const s = document.getElementById('sortBy');
+  s.value = s.value === field + '-asc' ? field + '-desc' : field + '-asc';
+  render();
+}
+
+function render() {
+  const q = document.getElementById('search').value.toLowerCase();
+  const dept = document.getElementById('deptFilter').value;
+  const [sortField, sortDir] = document.getElementById('sortBy').value.split('-');
+
+  // Filter
+  let filtered = records.filter(r =>
+    (!activeDept || r.dept === activeDept) &&
+    (!dept || r.dept === dept) &&
+    (!q || r.name.toLowerCase().includes(q) || r.role.toLowerCase().includes(q))
+  );
+
+  // Sort
+  filtered.sort((a, b) => {
+    const av = sortField === 'name' ? a.name : a.date;
+    const bv = sortField === 'name' ? b.name : b.date;
+    return sortDir === 'asc' ? av.localeCompare(bv) : bv.localeCompare(av);
+  });
+
+  // Sort indicators
+  document.getElementById('th-name').textContent = 'Name ' + (sortField === 'name' ? (sortDir === 'asc' ? '↑' : '↓') : '↕');
+  document.getElementById('th-date').textContent = 'Join Date ' + (sortField === 'date' ? (sortDir === 'asc' ? '↑' : '↓') : '↕');
+
+  // Render rows (track original index for deletion)
+  const tbody = document.getElementById('tbody');
+  const empty = document.getElementById('empty');
+
+  if (!filtered.length) {
+    tbody.innerHTML = '';
+    empty.style.display = '';
+  } else {
+    empty.style.display = 'none';
+    tbody.innerHTML = filtered.map(r => {
+      const origIdx = records.indexOf(r);
+      const dateStr = new Date(r.date).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+      return `<tr>
+        <td>${r.name}</td>
+        <td>${r.dept}</td>
+        <td>${dateStr}</td>
+        <td>${r.role}</td>
+        <td><button class="del-btn" onclick="deleteRecord(${origIdx})">Delete</button></td>
+      </tr>`;
+    }).join('');
+  }
+
+  document.getElementById('footer').textContent = `${filtered.length} of ${records.length} record(s)`;
+
+  // Dept counts
+  const counts = {};
+  records.forEach(r => counts[r.dept] = (counts[r.dept] || 0) + 1);
+  const wrap = document.getElementById('deptCounts');
+  wrap.innerHTML = '';
+  if (records.length === 0) return;
+  [['All', records.length], ...Object.entries(counts).sort()].forEach(([label, count]) => {
+    const s = document.createElement('span');
+    s.textContent = `${label} (${count})`;
+    s.className = (label === 'All' && !activeDept) || label === activeDept ? 'active' : '';
+    s.onclick = () => { activeDept = label === 'All' ? '' : label; render(); };
+    wrap.appendChild(s);
+  });
+}
+
+render();
+</script>
+</body>
+</html>
